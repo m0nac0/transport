@@ -183,9 +183,12 @@ class MunichApiClient {
               tickers: ((part["infos"] as List?) ?? [])
                   .map<Ticker>((ticker) => Ticker(
                       title: ticker["message"],
-                      type: ticker["type"] == "INCIDENT"
-                          ? TickerType.disruption
-                          : TickerType.planned,
+                      type: switch (ticker["type"]) {
+                        "INCIDENT" ||
+                        "EARLY_TERMINATION" =>
+                          TickerType.disruption,
+                        _ => TickerType.planned
+                      },
                       isExternal: true))
                   .toList(),
             ));
@@ -208,8 +211,8 @@ class MunichApiClient {
     }
   }
 
-  Future<(TransportRoute route, bool manuallyStitchedParts)?>
-      getUpdatedRoute(TransportRoute oldRoute) async {
+  Future<(TransportRoute route, bool manuallyStitchedParts)?> getUpdatedRoute(
+      TransportRoute oldRoute) async {
     var locationInputFrom = oldRoute.parts.first.from.station.isRealStation()
         ? LocationInputStation(oldRoute.parts.first.from.station)
         : LocationInputAddress(
@@ -420,7 +423,8 @@ class MunichApiClient {
       return Set<TickerLine>.from(
           data.map<TickerLine>((e) => getTickerLinefromFIBJson(e))).toList()
         ..sort((TickerLine a, TickerLine b) {
-          if (TransportType.transportTypeOrder(a.type) != TransportType.transportTypeOrder(b.type)) {
+          if (TransportType.transportTypeOrder(a.type) !=
+              TransportType.transportTypeOrder(b.type)) {
             return TransportType.transportTypeOrder(a.type)
                 .compareTo(TransportType.transportTypeOrder(b.type));
           }
